@@ -1,33 +1,70 @@
 import { useWalletClient } from "wagmi";
-import { useCallback } from "react";
-import axios from "axios";
-import { withPaymentInterceptor, decodeXPaymentResponse } from "x402-axios";
+import { useCallback, useState } from "react";
+import { createPaymentSession, sendTip } from "../services/paymentService";
+import { PaymentSessionResponse, PaymentTransactionResponse } from "../types/api";
 
-export function usePaymentContext(): {
-  createSession: (amount: string) => Promise<void>;
-} {
+export function usePaymentContext() {
   const { data: walletClient, isError, isLoading } = useWalletClient();
+  const [lastPaymentSession, setLastPaymentSession] = useState<PaymentSessionResponse | null>(null);
+  const [lastTransaction, setLastTransaction] = useState<PaymentTransactionResponse | null>(null);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const createSession = useCallback(async (amount: string) => {
-    if (!walletClient || !walletClient.account) throw new Error("please connect your wallet");
-    if (isError) throw new Error("wallet not connected");
-    if (isLoading) throw new Error("wallet is loading");
+  const createSession = useCallback(async (amount: string, description: string = "Beat Weaver service") => {
+    if (!walletClient || !walletClient.account) throw new Error("Please connect your wallet");
+    if (isError) throw new Error("Wallet not connected");
+    if (isLoading) throw new Error("Wallet is loading");
     
-    const baseClient = axios.create({
-        baseURL: "https://payments.vistara.dev",
-        headers: {
-            "Content-Type": "application/json",
-        },
-    });
+    setIsProcessing(true);
+    setError(null);
     
-    const apiClient = withPaymentInterceptor(baseClient, walletClient);
-    const response = await apiClient.post("/api/payment", { amount });
-    const paymentResponse = response.config.headers["X-PAYMENT"];
-    
-    if (!paymentResponse) throw new Error("payment response is absent");
-    const decoded = decodeXPaymentResponse(paymentResponse);
-    console.log(`decoded payment response: ${JSON.stringify(decoded)}`);
+    try {
+      const session = await createPaymentSession(amount, description, walletClient);
+      setLastPaymentSession(session);
+      setIsProcessing(false);
+      return session;
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : "Payment failed";
+      setError(errorMessage);
+      setIsProcessing(false);
+      throw err;
+    }
   }, [walletClient, isError, isLoading]);
 
-  return { createSession };
+  const sendTipToCreator = useCallback(async (
+    recipientId: string,
+    amount: string,
+    remixId: string
+  ) => {
+    if (!walletClient || !walletClient.account) throw new Error("Please connect your wallet");
+    if (isError) throw new Error("Wallet not connected");
+    if (isLoading) throw new Error("Wallet is loading");
+    
+    setIsProcessing(true);
+    setError(null);
+    
+    try {
+      const transaction = await sendTip(recipientId, amount, remixId, walletClient);
+      setLastTransaction(transaction);
+      setIsProcessing(false);
+      return transaction;
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : "Tip failed";
+      setError(errorMessage);
+      setIsProcessing(false);
+      throw err;
+    }
+  }, [walletClient, isError, isLoading]);
+
+  return { 
+    createSession,
+    sendTipToCreator,
+    lastPaymentSession,
+    lastTransaction,
+    isProcessing,
+    error,
+    isWalletConnected: !!walletClient && !!walletClient.account,
+    walletAddress: walletClient?.account?.address
+  };
 }
+
