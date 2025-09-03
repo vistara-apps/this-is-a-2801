@@ -1,28 +1,29 @@
 import React, { useState } from 'react';
-import { Play, Pause, Heart, DollarSign, User, Calendar } from 'lucide-react';
-import { usePaymentContext } from '../hooks/usePaymentContext';
+import { Play, Pause, User, MessageSquare, DollarSign, Share2 } from 'lucide-react';
 import { Remix } from '../types';
+import AudioPlayer from './AudioPlayer';
+import TipButton from './TipButton';
+import { useAuth } from '../hooks/useAuth';
 
 interface RemixCardProps {
   remix: Remix;
   variant?: 'withPlay' | 'withTipButton';
+  onTipSuccess?: () => void;
 }
 
-const RemixCard: React.FC<RemixCardProps> = ({ remix, variant = 'withTipButton' }) => {
+const RemixCard: React.FC<RemixCardProps> = ({
+  remix,
+  variant = 'withTipButton',
+  onTipSuccess,
+}) => {
+  const [isExpanded, setIsExpanded] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
-  const [hasLiked, setHasLiked] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
-  const { createSession } = usePaymentContext();
+  const { isAuthenticated } = useAuth();
 
-  const handleTip = async (amount: string) => {
-    setIsLoading(true);
-    try {
-      await createSession(amount);
-      console.log(`Tipped ${amount} to ${remix.username}`);
-    } catch (error) {
-      console.error('Tip failed:', error);
-    } finally {
-      setIsLoading(false);
+  const handlePlay = () => {
+    setIsPlaying(!isPlaying);
+    if (!isExpanded) {
+      setIsExpanded(true);
     }
   };
 
@@ -30,111 +31,108 @@ const RemixCard: React.FC<RemixCardProps> = ({ remix, variant = 'withTipButton' 
     return new Intl.DateTimeFormat('en-US', {
       month: 'short',
       day: 'numeric',
-      year: 'numeric'
-    }).format(date);
+      year: 'numeric',
+    }).format(new Date(date));
+  };
+
+  const handleShare = () => {
+    if (navigator.share) {
+      navigator.share({
+        title: remix.title,
+        text: `Check out this remix: ${remix.title}`,
+        url: window.location.href,
+      });
+    } else {
+      // Fallback for browsers that don't support the Web Share API
+      navigator.clipboard.writeText(window.location.href);
+      alert('Link copied to clipboard!');
+    }
   };
 
   return (
-    <div className="glass-card rounded-lg p-4 sm:p-6 space-y-4 hover:bg-white/15 transition-all duration-200">
-      {/* Header */}
-      <div className="flex items-start justify-between">
-        <div className="flex-1 min-w-0">
-          <h3 className="text-white font-semibold text-lg truncate">
-            {remix.title}
-          </h3>
-          <div className="flex items-center space-x-4 mt-1 text-white/60 text-sm">
-            <div className="flex items-center space-x-1">
-              <User className="w-4 h-4" />
-              <span>{remix.username}</span>
+    <div className="glass-card rounded-lg overflow-hidden">
+      <div className="p-4 sm:p-5">
+        <div className="flex items-start justify-between">
+          <div className="flex items-center space-x-3">
+            <div className="w-10 h-10 bg-gradient-to-r from-purple-500 to-blue-500 rounded-full flex items-center justify-center">
+              <User className="w-5 h-5 text-white" />
             </div>
-            <div className="flex items-center space-x-1">
-              <Calendar className="w-4 h-4" />
-              <span>{formatDate(remix.createdAt)}</span>
+            
+            <div>
+              <h3 className="text-white font-medium">{remix.title}</h3>
+              <p className="text-white/60 text-sm">
+                by {remix.username} • {formatDate(remix.createdAt)}
+              </p>
             </div>
           </div>
-        </div>
-        
-        <button
-          onClick={() => setHasLiked(!hasLiked)}
-          className={`p-2 rounded-full transition-colors duration-200 ${
-            hasLiked ? 'text-red-400 bg-red-400/20' : 'text-white/60 hover:text-white/80'
-          }`}
-        >
-          <Heart className={`w-5 h-5 ${hasLiked ? 'fill-current' : ''}`} />
-        </button>
-      </div>
-
-      {/* Description */}
-      <p className="text-white/70 text-sm leading-relaxed">
-        {remix.description}
-      </p>
-
-      {/* Stems Info */}
-      <div className="flex flex-wrap gap-2">
-        {remix.stemsInfo.map((stem, index) => (
-          <span
-            key={index}
-            className="px-3 py-1 bg-white/10 rounded-full text-xs text-white/80 capitalize"
-          >
-            {stem}
-          </span>
-        ))}
-      </div>
-
-      {/* Waveform Visualization */}
-      <div className="bg-white/10 rounded-lg p-3">
-        <div className="waveform w-full h-8 opacity-60" />
-      </div>
-
-      {/* Controls */}
-      <div className="flex items-center justify-between">
-        {variant === 'withPlay' && (
+          
           <button
-            onClick={() => setIsPlaying(!isPlaying)}
-            className="flex items-center space-x-2 bg-primary-500 hover:bg-primary-600 text-white px-4 py-2 rounded-lg transition-colors duration-200"
+            onClick={handlePlay}
+            className="w-10 h-10 rounded-full bg-primary-500 hover:bg-primary-600 flex items-center justify-center transition-colors duration-200 flex-shrink-0"
           >
             {isPlaying ? (
-              <Pause className="w-4 h-4" />
+              <Pause className="w-5 h-5 text-white" />
             ) : (
-              <Play className="w-4 h-4 ml-0.5" />
+              <Play className="w-5 h-5 text-white ml-0.5" />
             )}
-            <span className="hidden sm:inline">{isPlaying ? 'Pause' : 'Play'}</span>
           </button>
-        )}
-
-        <div className="flex items-center space-x-2 text-white/70">
-          <DollarSign className="w-4 h-4" />
-          <span className="text-sm">${remix.communityTips.toFixed(1)} tips</span>
         </div>
-
-        {variant === 'withTipButton' && (
-          <div className="flex space-x-2">
-            <button
-              onClick={() => handleTip('$0.50')}
-              disabled={isLoading}
-              className="bg-accent-500 hover:bg-accent-600 disabled:bg-accent-300 text-white px-3 py-1 rounded text-sm transition-colors duration-200"
-            >
-              $0.50
-            </button>
-            <button
-              onClick={() => handleTip('$1.00')}
-              disabled={isLoading}
-              className="bg-accent-500 hover:bg-accent-600 disabled:bg-accent-300 text-white px-3 py-1 rounded text-sm transition-colors duration-200"
-            >
-              $1.00
-            </button>
-            <button
-              onClick={() => handleTip('$5.00')}
-              disabled={isLoading}
-              className="bg-accent-500 hover:bg-accent-600 disabled:bg-accent-300 text-white px-3 py-1 rounded text-sm transition-colors duration-200"
-            >
-              $5.00
-            </button>
+        
+        {remix.description && (
+          <p className="text-white/80 text-sm mt-3">
+            {remix.description}
+          </p>
+        )}
+        
+        {isExpanded && (
+          <div className="mt-4">
+            <AudioPlayer
+              audioUrl={remix.audioUrl}
+              title={remix.title}
+              variant="standard"
+              onPlay={() => setIsPlaying(true)}
+              onPause={() => setIsPlaying(false)}
+            />
           </div>
         )}
+        
+        <div className="flex items-center justify-between mt-4 pt-4 border-t border-white/10">
+          <div className="flex items-center space-x-4">
+            <div className="flex items-center text-white/70 text-sm">
+              <MessageSquare className="w-4 h-4 mr-1" />
+              <span>0</span>
+            </div>
+            
+            <div className="flex items-center text-white/70 text-sm">
+              <DollarSign className="w-4 h-4 mr-1" />
+              <span>{remix.communityTips}</span>
+            </div>
+          </div>
+          
+          <div className="flex items-center space-x-2">
+            <button
+              onClick={handleShare}
+              className="p-2 text-white/60 hover:text-white/80 rounded-full hover:bg-white/10 transition-colors duration-200"
+              title="Share"
+            >
+              <Share2 className="w-4 h-4" />
+            </button>
+            
+            {variant === 'withTipButton' && isAuthenticated && (
+              <TipButton
+                recipientId={remix.userId}
+                remixId={remix.remixId}
+                amount="1 USDC"
+                variant="small"
+                onSuccess={onTipSuccess}
+              />
+            )}
+          </div>
+        </div>
       </div>
     </div>
   );
 };
 
 export default RemixCard;
+

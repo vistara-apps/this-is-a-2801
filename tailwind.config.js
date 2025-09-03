@@ -8,49 +8,83 @@ export default {
     extend: {
       colors: {
         primary: {
-          50: '#f0f9ff',
-          100: '#e0f2fe',
-          200: '#bae6fd',
-          300: '#7dd3fc',
-          400: '#38bdf8',
-          500: 'hsl(220 80% 50%)',
-          600: '#0284c7',
-          700: '#0369a1',
-          800: '#075985',
-          900: '#0c4a6e',
+          50: 'hsl(220, 80%, 95%)',
+          100: 'hsl(220, 80%, 90%)',
+          200: 'hsl(220, 80%, 80%)',
+          300: 'hsl(220, 80%, 70%)',
+          400: 'hsl(220, 80%, 60%)',
+          500: 'hsl(220, 80%, 50%)',
+          600: 'hsl(220, 80%, 40%)',
+          700: 'hsl(220, 80%, 30%)',
+          800: 'hsl(220, 80%, 20%)',
+          900: 'hsl(220, 80%, 10%)',
         },
         accent: {
-          50: '#ecfdf5',
-          100: '#d1fae5',
-          200: '#a7f3d0',
-          300: '#6ee7b7',
-          400: '#34d399',
-          500: 'hsl(160 70% 45%)',
-          600: '#059669',
-          700: '#047857',
-          800: '#065f46',
-          900: '#064e3b',
+          50: 'hsl(160, 70%, 95%)',
+          100: 'hsl(160, 70%, 90%)',
+          200: 'hsl(160, 70%, 80%)',
+          300: 'hsl(160, 70%, 70%)',
+          400: 'hsl(160, 70%, 60%)',
+          500: 'hsl(160, 70%, 45%)',
+          600: 'hsl(160, 70%, 35%)',
+          700: 'hsl(160, 70%, 25%)',
+          800: 'hsl(160, 70%, 15%)',
+          900: 'hsl(160, 70%, 10%)',
         },
-        surface: 'hsl(0 0% 100%)',
-        background: 'hsl(225 10% 95%)',
+        background: 'hsl(225, 10%, 95%)',
+        surface: 'hsl(0, 0%, 100%)',
       },
       borderRadius: {
-        'lg': '16px',
-        'md': '10px',
-        'sm': '4px',
-      },
-      spacing: {
-        'sm': '8px',
-        'md': '16px',
-        'lg': '24px',
+        sm: '4px',
+        md: '10px',
+        lg: '16px',
       },
       boxShadow: {
-        'card': '0 4px 12px hsla(0,0%,0%,0.08)',
+        card: '0 4px 12px hsla(0,0%,0%,0.08)',
       },
-      animation: {
-        'pulse-slow': 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite',
-      }
+      spacing: {
+        sm: '8px',
+        md: '16px',
+        lg: '24px',
+      },
+      typography: {
+        DEFAULT: {
+          css: {
+            maxWidth: '65ch',
+            color: 'inherit',
+            a: {
+              color: 'hsl(220, 80%, 50%)',
+              textDecoration: 'none',
+              '&:hover': {
+                textDecoration: 'underline',
+              },
+            },
+            h1: {
+              color: 'inherit',
+            },
+            h2: {
+              color: 'inherit',
+            },
+            h3: {
+              color: 'inherit',
+            },
+            h4: {
+              color: 'inherit',
+            },
+            code: {
+              color: 'hsl(220, 80%, 50%)',
+            },
+            'code::before': {
+              content: '""',
+            },
+            'code::after': {
+              content: '""',
+            },
+          },
+        },
+      },
     },
   },
   plugins: [],
 }
+

@@ -5,21 +5,40 @@ import AudioUploader from './components/AudioUploader';
 import StemsViewer from './components/StemsViewer';
 import BeatGeneratorForm from './components/BeatGeneratorForm';
 import CommunityHub from './components/CommunityHub';
-import { AudioStem } from './types';
+import AudioPlayer from './components/AudioPlayer';
+import UserProfile from './components/UserProfile';
+import AuthModal from './components/AuthModal';
+import ErrorBoundary from './components/ErrorBoundary';
+import LoadingIndicator from './components/LoadingIndicator';
+import { UserProvider, useUser } from './contexts/UserContext';
+import { ErrorProvider } from './contexts/ErrorContext';
+import { useAuth } from './hooks/useAuth';
+import { useAudioProcessing } from './hooks/useAudioProcessing';
 
 type AppSection = 'home' | 'create' | 'community';
 
-function App() {
+function AppContent() {
   const [currentSection, setCurrentSection] = useState<AppSection>('home');
-  const [stems, setStems] = useState<AudioStem[]>([]);
-  const [generatedBeat, setGeneratedBeat] = useState<string | null>(null);
+  const { authModalOpen, openAuthModal, closeAuthModal } = useAuth();
+  const {
+    isProcessingStems,
+    isGeneratingBeat,
+    stems,
+    generatedBeat,
+    error,
+    progress,
+    processStemSeparation,
+    processBeatGeneration,
+  } = useAudioProcessing();
 
-  const handleStemsGenerated = (newStems: AudioStem[]) => {
-    setStems(newStems);
+  const handleStemsGenerated = async (audioFile: File) => {
+    const newStems = await processStemSeparation(audioFile);
+    return newStems;
   };
 
-  const handleBeatGenerated = (beatUrl: string) => {
-    setGeneratedBeat(beatUrl);
+  const handleBeatGenerated = async (params: any) => {
+    const beatUrl = await processBeatGeneration(params);
+    return beatUrl;
   };
 
   const renderContent = () => {
@@ -39,41 +58,67 @@ function App() {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
               {/* Left Column - Upload & Beat Generator */}
               <div className="space-y-6">
-                <AudioUploader 
-                  onStemsGenerated={handleStemsGenerated}
-                  variant="withProgress"
-                />
+                <ErrorBoundary>
+                  <AudioUploader 
+                    onStemsGenerated={handleStemsGenerated}
+                    variant="withProgress"
+                  />
+                </ErrorBoundary>
                 
-                <BeatGeneratorForm 
-                  onBeatGenerated={handleBeatGenerated}
-                  variant="parameterControls"
-                />
+                <ErrorBoundary>
+                  <BeatGeneratorForm 
+                    onBeatGenerated={handleBeatGenerated}
+                    variant="parameterControls"
+                  />
+                </ErrorBoundary>
               </div>
 
               {/* Right Column - Stems Viewer */}
               <div className="space-y-6">
-                {stems.length > 0 && (
-                  <StemsViewer 
-                    stems={stems}
-                    variant="download"
-                  />
-                )}
+                <ErrorBoundary>
+                  {isProcessingStems && (
+                    <LoadingIndicator message="Processing audio..." />
+                  )}
+                  
+                  {stems.length > 0 && (
+                    <StemsViewer 
+                      stems={stems}
+                      variant="download"
+                    />
+                  )}
+                  
+                  {stems.length === 0 && !isProcessingStems && (
+                    <div className="glass-card rounded-lg p-8 text-center">
+                      <Music className="w-12 h-12 text-white/50 mx-auto mb-4" />
+                      <p className="text-white/60">
+                        Upload an audio file to get started with stem separation
+                      </p>
+                    </div>
+                  )}
+                </ErrorBoundary>
                 
-                {stems.length === 0 && (
-                  <div className="glass-card rounded-lg p-8 text-center">
-                    <Music className="w-12 h-12 text-white/50 mx-auto mb-4" />
-                    <p className="text-white/60">
-                      Upload an audio file to get started with stem separation
-                    </p>
-                  </div>
-                )}
+                <ErrorBoundary>
+                  {generatedBeat && (
+                    <div className="glass-card rounded-lg p-4 space-y-3">
+                      <h3 className="text-white font-medium">Generated Beat</h3>
+                      <AudioPlayer 
+                        audioUrl={generatedBeat}
+                        variant="standard"
+                      />
+                    </div>
+                  )}
+                </ErrorBoundary>
               </div>
             </div>
           </div>
         );
 
       case 'community':
-        return <CommunityHub />;
+        return (
+          <ErrorBoundary>
+            <CommunityHub />
+          </ErrorBoundary>
+        );
 
       default:
         return (
@@ -206,8 +251,24 @@ function App() {
       <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
         {renderContent()}
       </main>
+      
+      {/* Auth Modal */}
+      <AuthModal isOpen={authModalOpen} onClose={closeAuthModal} />
     </div>
   );
 }
 
+function App() {
+  return (
+    <ErrorProvider>
+      <UserProvider>
+        <ErrorBoundary>
+          <AppContent />
+        </ErrorBoundary>
+      </UserProvider>
+    </ErrorProvider>
+  );
+}
+
 export default App;
+
