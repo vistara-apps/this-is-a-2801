@@ -1,9 +1,9 @@
 import '@rainbow-me/rainbowkit/styles.css';
 import {
-  getDefaultConfig,
   RainbowKitProvider,
+  connectorsForWallets,
 } from '@rainbow-me/rainbowkit';
-import { WagmiProvider } from 'wagmi';
+import { configureChains, createConfig, WagmiConfig } from 'wagmi';
 import {
   mainnet,
   polygon,
@@ -11,6 +11,13 @@ import {
   arbitrum,
   base,
 } from 'wagmi/chains';
+import { publicProvider } from 'wagmi/providers/public';
+import { 
+  injectedWallet,
+  metaMaskWallet,
+  coinbaseWallet,
+  walletConnectWallet,
+} from '@rainbow-me/rainbowkit/wallets';
 import {
   QueryClientProvider,
   QueryClient,
@@ -24,22 +31,44 @@ import './index.css'
 // Create a client
 const queryClient = new QueryClient();
 
-// Configure wagmi
-const wagmiConfig = getDefaultConfig({
-  appName: "Beat Weaver",
-  projectId: "9f4bd472c01ba49282b42e5e1874c2af",
-  chains: [mainnet, polygon, optimism, arbitrum, base],
+// Project ID for WalletConnect
+const projectId = '9f4bd472c01ba49282b42e5e1874c2af';
+
+// Configure chains & providers
+const { chains, publicClient } = configureChains(
+  [mainnet, polygon, optimism, arbitrum, base],
+  [publicProvider()]
+);
+
+// Set up connectors
+const connectors = connectorsForWallets([
+  {
+    groupName: 'Recommended',
+    wallets: [
+      injectedWallet({ chains, projectId }),
+      metaMaskWallet({ chains, projectId }),
+      coinbaseWallet({ chains, appName: 'Beat Weaver' }),
+      walletConnectWallet({ chains, projectId }),
+    ],
+  },
+]);
+
+// Create wagmi config
+const wagmiConfig = createConfig({
+  autoConnect: true,
+  connectors,
+  publicClient,
 });
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
-    <WagmiProvider config={wagmiConfig}>
+    <WagmiConfig config={wagmiConfig}>
       <QueryClientProvider client={queryClient}>
-        <RainbowKitProvider>
+        <RainbowKitProvider chains={chains}>
           <App />
         </RainbowKitProvider>
       </QueryClientProvider>
-    </WagmiProvider>
+    </WagmiConfig>
   </React.StrictMode>,
 )
 

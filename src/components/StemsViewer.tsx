@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Download, Mic, Drum, Music, Layers, Play, Pause } from 'lucide-react';
+import { Download, Mic, Music, Layers, Play, Pause } from 'lucide-react';
 import { AudioStem } from '../types';
 import AudioPlayer from './AudioPlayer';
 
@@ -13,10 +13,10 @@ const StemsViewer: React.FC<StemsViewerProps> = ({
   variant = 'preview',
 }) => {
   const [activeStems, setActiveStems] = useState<Record<string, boolean>>(
-    stems.reduce((acc, stem) => ({ ...acc, [stem.id]: true }), {})
+    stems.reduce((acc, stem) => ({ ...acc, [stem.id]: true }), {} as Record<string, boolean>)
   );
   const [playingStems, setPlayingStems] = useState<Record<string, boolean>>(
-    stems.reduce((acc, stem) => ({ ...acc, [stem.id]: false }), {})
+    stems.reduce((acc, stem) => ({ ...acc, [stem.id]: false }), {} as Record<string, boolean>)
   );
 
   const toggleStem = (stemId: string) => {
@@ -31,7 +31,7 @@ const StemsViewer: React.FC<StemsViewerProps> = ({
       // Pause all other stems
       const newState = Object.keys(prev).reduce(
         (acc, id) => ({ ...acc, [id]: false }),
-        {}
+        {} as Record<string, boolean>
       );
       // Toggle the current stem
       newState[stemId] = !prev[stemId];
@@ -55,7 +55,8 @@ const StemsViewer: React.FC<StemsViewerProps> = ({
       case 'vocals':
         return <Mic className="w-5 h-5" />;
       case 'drums':
-        return <Drum className="w-5 h-5" />;
+        // Using Music icon instead of Drum which is not available in lucide-react
+        return <Music className="w-5 h-5" />;
       case 'bass':
         return <Music className="w-5 h-5" />;
       case 'other':
